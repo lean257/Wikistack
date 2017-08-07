@@ -6,30 +6,24 @@ const models = require('../models');
 wikiRouter.get('/', (req, res, next) => res.redirect('/'));
 //submit a new page to db
 wikiRouter.post('/', (req,res) => {
-  models.Page.create({
-    title: req.body.title,
-    content: req.body.content,
-    status: req.body.status,
-    authorID: models.User.findOne({
-      where: {
-        name: req.body.name
-      },
-      attributes: ['id']
-    }).then(id => {
-      if (id) {return id}
-      else {
-        models.User.create({
-          name: req.body.name,
-          email: req.body.email
-        })
-        .then(user => user.id)
-      }
+  models.User.findOrCreate({
+    where: {
+      name: req.body.name,
+      email: req.body.email
+    }
+  })
+  .then(values => {
+    var user = values[0];
+    return models.Page.create({
+      title: req.body.title,
+      content: req.body.content,
+      status: req.body.status,
     })
+    .then(page => page.setAuthor(user))
+    .catch(console.error);
   })
-  .then(result => {
-    res.redirect(result.route);
-  })
-  .catch(console.error)
+  .then(page => res.redirect(page.route))
+  .catch(console.error);
 });
 
 //retrieve the added page form
@@ -37,11 +31,17 @@ wikiRouter.get('/add', (req, res, next) => res.render('addpage'));
 
 //get individual page
 wikiRouter.get('/:urlTitle', (req, res) => {
-  models.Page.findOne({where: {urlTitle: req.params.urlTitle}})
+  //include method can be used to join models instead of below method:
+  models.Page.findOne({
+    where: {urlTitle: req.params.urlTitle},
+  })
   .then(page => {
-    res.render('wikipage',{page: page})
-  }).
-  catch(console.error);
+    page.getAuthor().then(author => author.dataValues)
+      .then(author =>
+        res.render('wikipage', {page: page, author: author})
+      )
+  })
+  .catch(console.error);
 });
 
 module.exports = wikiRouter;
