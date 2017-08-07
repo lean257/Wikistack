@@ -22,7 +22,7 @@ app.use(express.static(path.join(__dirname, '/public')));
 //   .then(app.listen(3000, () => console.log('Listening on port 3000...')))
 //   .catch(console.error);
 
-models.db.sync({force: true})
+models.db.sync()
   .then(app.listen(3000, () => console.log('Listening on port 3000...')))
   .catch(console.error);
 
